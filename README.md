@@ -17,7 +17,6 @@ The analog circuit is connected to an Arduino UNO which interfaces with MATLAB S
 
 A potentiometer sets the desired angle as a voltage. A subtractor op-amp computes the error between the setpoint and the feedback. That error is then processed by three parallel op-amp stages — Proportional, Integral, and Derivative — whose outputs are summed and sent to the motor driver.
 
-![System Block Diagram](images/block_diagram.png)
 
 Each of the three gains (Kp, Ki, Kd) is adjustable in real time using potentiometers on the PCB.
 
@@ -27,7 +26,6 @@ Each of the three gains (Kp, Ki, Kd) is adjustable in real time using potentiome
 
 The full circuit was designed and simulated in Proteus. It includes input buffering, two low-pass filters to remove noise, a subtractor, the PID block, an adder, and output scaling amplifiers to match the Arduino's 5V ADC range.
 
-![Full Circuit Schematic](images/full_circuit.png)
 
 ---
 
