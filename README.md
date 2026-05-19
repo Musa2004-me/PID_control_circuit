@@ -1,269 +1,76 @@
-# 🎛️ Analog PID Control Circuit — MCT232s Project
+# Analog PID Control Circuit
 
-> **Electronics for Instrumentation | Ain Shams University — Faculty of Engineering**
-> Team 27 | Section MCT-1
-
----
-
-## 👥 Team Members
-
-| Name | ID |
-|---|---|
-| Musa Gamal El-Shenawy | 2100614 |
-| Fares Mohamed Mostafa | 2100409 |
-| Youssef Kamel Ahmed | 2101081 |
+**Electronics for Instrumentation — MCT232s | Ain Shams University**
+Team 27 — Musa Gamal, Fares Mohamed, Youssef Kamel
 
 ---
 
-## 📌 Overview
+## What is this project?
 
-This project implements a **full analog PID controller** using op-amps to control a **DC motor's position angle**. The analog PID output is interfaced with an Arduino UNO and MATLAB Simulink for real-time testing and feedback via a DAC (MCP4725).
+This project is a fully analog PID controller built using op-amps. It controls the position angle of a DC motor by continuously comparing the desired setpoint (set by a potentiometer) against the actual motor position (read by an encoder), and adjusting the motor drive signal to minimize the error.
 
----
-
-## 🎯 Objective
-
-Design an analog PID circuit using op-amps that:
-- Accepts a **voltage setpoint** (potentiometer input)
-- Computes the **P, I, and D** terms in analog hardware
-- Drives a motor to the desired angular position with **minimal error and fast response**
+The analog circuit is connected to an Arduino UNO which interfaces with MATLAB Simulink for real-time monitoring and a DAC (MCP4725) to close the feedback loop.
 
 ---
 
-## 📐 System Block Diagram
+## How it works
 
-> *Insert image: block diagram from page 7 (Set point → PRO/INT/DIF → Adder → AMP → Motor → Feedback encoder)*
+A potentiometer sets the desired angle as a voltage. A subtractor op-amp computes the error between the setpoint and the feedback. That error is then processed by three parallel op-amp stages — Proportional, Integral, and Derivative — whose outputs are summed and sent to the motor driver.
 
-```
-Setpoint ──► [Subtractor] ──► [P] ─┐
-                   ▲          [I] ──► [Adder] ──► [Motor] ──► [Encoder]
-                   │          [D] ─┘                               │
-                   └───────────────────────── Feedback ────────────┘
-```
+![System Block Diagram](images/block_diagram.png)
+
+Each of the three gains (Kp, Ki, Kd) is adjustable in real time using potentiometers on the PCB.
 
 ---
 
-## 🔧 Circuit Architecture
+## The Circuit
 
-The full Proteus schematic consists of the following stages in order:
+The full circuit was designed and simulated in Proteus. It includes input buffering, two low-pass filters to remove noise, a subtractor, the PID block, an adder, and output scaling amplifiers to match the Arduino's 5V ADC range.
 
-> *Insert image: full circuit screenshot from page 8 (showing Buffer → Subtractor → LPF → P/I/D → Adder pipeline)*
-
-### Signal Chain
-
-```
-Potentiometer (Setpoint)
-    → Buffer
-    → Inverting Amp (×-1)
-    → LPF 1 (H(s) = 1/(s+1))
-    → Subtractor (error = setpoint - feedback)
-    → LPF 2 (H(s) = 1/(s/10+1))
-    → P / I / D (parallel paths)
-    → Adder
-    → Inverting Amp (gain = -5/12, maps to Arduino range)
-    → Arduino UNO (analog input A0)
-    → DAC MCP4725 (feedback output)
-```
+![Full Circuit Schematic](images/full_circuit.png)
 
 ---
 
-## 🧩 Circuit Blocks
+## PID Gains
 
-### 1. Setpoint — Potentiometer
-> *Insert image: potentiometer circuit from page 9*
-
-A 50kΩ pot with a 10kΩ series resistor limits the output range:
-- **V(max) = 5 × (50/60) = 4.167 V**
-- **V(min) = 0 V**
-
----
-
-### 2. Buffer
-> *Insert image: buffer op-amp circuit from page 10*
-
-Unity-gain voltage follower (A = 1) used to isolate the setpoint source from the downstream load.
+| Term | Gain Range | Components |
+|---|---|---|
+| Proportional (Kp) | 0 → 100 | 100kΩ pot, 1kΩ resistor |
+| Integral (Ki) | 55 → 666 | 50kΩ pot, 5kΩ resistor, 0.3µF cap |
+| Derivative (Kd) | 0 → 88 | 200kΩ pot, 440µF cap |
 
 ---
 
-### 3. Inverting Amplifier (×−1)
-> *Insert image: inverting amp circuit from page 10*
+## Simulation Results
 
-Restores signal polarity with unity gain (Av = −1), using matched 10kΩ resistors.
+The full closed-loop system was simulated in Simulink with the motor modeled as:
 
----
+$$G(s) = \frac{1}{s^2 + 10s + 20}$$
 
-### 4. Low-Pass Filter 1 (feedback path)
-> *Insert image: LPF 1 circuit and Bode plot from page 16*
+With a step input the system settles in around 4 seconds with no overshoot.
 
-Eliminates oscillations from the feedback signal.
+![Simulink Response](images/simulink_response.png)
 
-$$H(s) = \frac{1}{s + 1}, \quad \omega_c = 1 \text{ rad/s}$$
+Setting the setpoint to 2.51V in the hardware-in-the-loop test, the output tracked it closely at ~2.5V.
 
-- R = 10 kΩ, C = 100 µF → RC = 1
+![TF Response](images/tf_response.png)
 
 ---
 
-### 5. Subtractor (Error Comparator)
-> *Insert image: subtractor circuit from page 11 / page 17*
+## PCB
 
-Computes the error signal: `e(t) = V_setpoint − V_feedback`
+The board was designed using the LM348N quad op-amp IC to keep it as compact as possible. The three potentiometers for Kp, Ki, Kd are accessible on the top of the board.
 
-$$A_v = \frac{R_{12}}{R_{13}} = 1$$
+![PCB Layout](images/pcb_layout.png)
 
----
-
-### 6. Low-Pass Filter 2 (post-subtractor)
-> *Insert image: LPF 2 circuit and Bode plot from page 17*
-
-Removes high-frequency noise introduced by the feedback path.
-
-$$H(s) = \frac{1}{\frac{s}{10} + 1}, \quad \omega_c = 10 \text{ rad/s} \ (f \approx 1.59 \text{ Hz})$$
-
-- R = 1 kΩ, C = 100 µF → RC = 0.1
+![Physical Board](images/pcb_photo.png)
 
 ---
 
-### 7. PID Block
-> *Insert image: P/I/D combined circuit from page 18*
+## Tools
 
-All three terms use tunable potentiometers so gains can be varied in real time.
-
-#### Proportional (P)
-$$A_v = -\frac{R_{V4}}{R_1}, \quad K_p \in [0, 100]$$
-- Pot: 100 kΩ, R_const: 1 kΩ
-
-#### Integral (I)
-$$A_v = \frac{-1}{C \cdot s \cdot (R_7 + R_{V5})}, \quad K_i \in [55, 666]$$
-- C = 0.3 µF (3 × 0.1 µF), R₇ = 5 kΩ, Pot = 50 kΩ
-
-#### Derivative (D)
-$$A_v = -C \cdot s \cdot R_{V6}, \quad K_d \in [0, 88]$$
-- C = 440 µF (2 × 220 µF), Pot = 200 kΩ
-
-> *Insert image: individual P amplifier circuit from page 12*
-
-> *Insert image: integrator circuit from page 12*
-
-> *Insert image: differentiator circuit from page 13*
-
----
-
-### 8. Adder
-> *Insert image: adder circuit from page 13*
-
-Sums the three PID terms:
-
-$$V_{out} = -(V_P + V_I + V_D)$$
-
----
-
-### 9. Arduino Interface & DAC
-> *Insert image: Arduino + DAC block from page 14*
-
-- **Arduino UNO** reads the scaled PID output via analog pin A0 and sends it over I²C
-- **MCP4725 DAC** converts the digital value back to an analog feedback voltage
-
----
-
-## 📊 Simulations & Test Results
-
-### Individual Block Tests
-
-| Block | Input | Expected Output | Actual Output |
-|---|---|---|---|
-| P (Kp = 50) | 0.1 V DC | −5 V | −5 V ✅ |
-| I (Ki = 100) | 0.1 V DC | −∞ (saturates) | −11 V (rail) ✅ |
-| D (Kd = 10) | 0.1 V DC | 0 V (DC → no derivative) | ~0.01 mV ✅ |
-
-> *Insert image: P test oscilloscope screenshot from page 20*
-
-> *Insert image: I test oscilloscope screenshot from page 20*
-
-> *Insert image: D test oscilloscope screenshot from page 21*
-
----
-
-### PID Combined — Simulink
-> *Insert image: Simulink block diagram and response plot from page 22*
-
-With Vin = 0.1 V DC, the output saturates at **+12 V** (op-amp rail) as expected — the integrator drives to maximum with a constant non-zero error.
-
----
-
-### PID Combined — Proteus
-> *Insert image: Proteus simulation schematic and oscilloscope from page 23*
-
-Proteus result: **Vout = 11.00 V** (op-amp rail), consistent with Simulink.
-
----
-
-### Full Closed-Loop System — Simulink
-> *Insert image: full Simulink block diagram from page 25*
-
-$$\text{Plant: } G(s) = \frac{1}{s^2 + 10s + 20}$$
-
-With setpoint = 0.1 V, the system settles in approximately **4 seconds** with no overshoot.
-
-> *Insert image: closed-loop step response plot from page 25*
-
----
-
-### Hardware-in-the-Loop Test
-> *Insert image: hardware photo with multimeter from page 26*
-
-With setpoint = **2.51 V** and the full loop running (Arduino + DAC + Simulink plant):
-
-> *Insert image: TF response plot varying around 2.5 V from page 27*
-
-The output oscillates around **2.5 V** — confirms the controller is actively regulating.
-
----
-
-## 🖨️ PCB Design
-
-> *Insert image: PCB layout (top copper + schematic view) from page 24*
-
-> *Insert image: physical PCB photo from page 24*
-
-- IC used: **LM348N** (quad op-amp in single package — chosen for compact PCB footprint)
-- Potentiometers for P, I, D are panel-mounted for in-circuit tuning
-
----
-
-## ⚙️ Tools Used
-
-| Tool | Purpose |
-|---|---|
-| Proteus | Circuit simulation & Bode plots |
-| MATLAB Simulink | System-level simulation & HIL testing |
-| KiCad / EasyEDA | PCB layout |
-| Arduino UNO | ADC interface |
-| MCP4725 | DAC feedback |
-| LM348N / µA741 | Op-amp implementation |
-
----
-
-## ✅ Conclusion
-
-- All individual blocks (P, I, D, LPF, Subtractor, Adder) were verified in Proteus and match theoretical calculations
-- The full closed-loop system was simulated successfully in Simulink
-- Hardware-in-the-loop test shows the output tracking the 2.51 V setpoint at ~2.5 V
-- Remaining discrepancies are attributed to **Simulink–Arduino–DAC communication latency**, not the analog circuit itself
-
----
-
-## 📁 Repository Structure
-
-```
-📦 PID-Control-Circuit
- ┣ 📂 proteus/          # Proteus simulation files (.pdsprj)
- ┣ 📂 simulink/         # MATLAB Simulink models (.slx)
- ┣ 📂 pcb/              # PCB layout files
- ┣ 📂 arduino/          # Arduino sketch for ADC/I2C interface
- ┣ 📂 report/           # Project final report (PDF)
- ┗ 📜 README.md
-```
-
----
-
-> *MCT232s — Electronics for Instrumentation | Ain Shams University 2024*
+- **Proteus** — circuit simulation
+- **MATLAB Simulink** — system simulation and hardware-in-the-loop testing
+- **Arduino UNO** — analog interface
+- **MCP4725** — DAC for feedback signal
+- **LM348N / µA741** — op-amps
