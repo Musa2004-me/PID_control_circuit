@@ -49,11 +49,8 @@ $$G(s) = \frac{1}{s^2 + 10s + 20}$$
 
 With a step input the system settles in around 4 seconds with no overshoot.
 
-![Simulink Response](images/simulink_response.png)
-
 Setting the setpoint to 2.51V in the hardware-in-the-loop test, the output tracked it closely at ~2.5V.
 
-![TF Response](images/tf_response.png)
 
 ---
 
@@ -61,9 +58,6 @@ Setting the setpoint to 2.51V in the hardware-in-the-loop test, the output track
 
 The board was designed using the LM348N quad op-amp IC to keep it as compact as possible. The three potentiometers for Kp, Ki, Kd are accessible on the top of the board.
 
-![PCB Layout](images/pcb_layout.png)
-
-![Physical Board](images/pcb_photo.png)
 
 ---
 
